@@ -13,6 +13,7 @@ were not simulating the same thing twice.
 """
 
 import json
+import math
 import pathlib
 import re
 import statistics
@@ -82,10 +83,18 @@ def load(results_dir):
 def summarize(runs):
     p50s = [r["step_ms"]["p50_ms"] for r in runs]
     extra = {}
+    diverged = False
     for r in runs:
         for key, value in (r.get("extra_metrics") or {}).items():
+            # Godot writes inf as 1e99999 and NaN as null. Either means the world blew up,
+            # and stepping a blown up world is cheap, so its time must not be ranked.
+            if value is None or (isinstance(value, float) and not math.isfinite(value)):
+                diverged = True
+                value = math.inf
             extra.setdefault(key, []).append(value)
     return {
+        "diverged": diverged,
+        "diverged_reason": "reported a non-finite metric, so the simulation blew up" if diverged else None,
         "repeats": len(runs),
         "p50": min(p50s),
         "median": statistics.median(p50s),
@@ -117,7 +126,7 @@ def chart_absolute(dim, cases, data, engines, out):
     for row, case in enumerate(cases):
         for i, engine in enumerate(engines):
             s = data[case].get(engine)
-            if s is None:
+            if s is None or s["diverged"]:
                 continue
             y = row * (n + 0.8) + i
             ypos.append(y)
@@ -152,7 +161,7 @@ def chart_relative(dim, cases, data, engines, out):
         xs, ys = [], []
         for row, case in enumerate(cases):
             s, b = data[case].get(engine), data[case].get(base)
-            if not s or not b or b["p50"] <= 0:
+            if not s or not b or b["p50"] <= 0 or s["diverged"] or b["diverged"]:
                 continue
             xs.append(s["p50"] / b["p50"])
             ys.append(row + (i - (len(others) - 1) / 2) * 0.32)
@@ -172,6 +181,55 @@ def chart_relative(dim, cases, data, engines, out):
     fig.savefig(out, dpi=140, facecolor=BG)
     plt.close(fig)
     return True
+
+
+# Extra metrics that measure how far bodies travelled. A world can explode without ever going
+# non-finite: bodies fly apart, stop touching, and the step gets cheap — a fast time for a
+# simulation that failed. So a value far beyond every other engine's on the same case marks the
+# run diverged. Relative, because what counts as "far" differs by case; compared against the
+# largest other value, so an engine that merely settles looser is not caught.
+EXPLOSION_METRICS = ("displacement_max", "spread")
+EXPLOSION_RATIO = 10.0
+
+
+def mark_exploded(case_data):
+    for key in EXPLOSION_METRICS:
+        values = {
+            e: v["extra"][key]
+            for e, v in case_data.items()
+            if key in v["extra"] and math.isfinite(v["extra"][key])
+        }
+        for engine, value in values.items():
+            others = [x for e, x in values.items() if e != engine]
+            if not others or max(others) <= 0:
+                continue
+            ratio = value / max(others)
+            if ratio > EXPLOSION_RATIO and not case_data[engine]["diverged"]:
+                case_data[engine]["diverged"] = True
+                case_data[engine]["diverged_reason"] = (
+                    f"has `{key}` at {ratio:,.0f}x any other engine's, so the simulation exploded"
+                )
+
+
+def carried_section(docs, dim):
+    """A track's section from its existing REPORT-<DIM>.md, for a run that did not include it.
+
+    Running one track would otherwise drop the other from the combined report. The section is
+    marked as carried over, with the run line it was measured under, so it is not mistaken for
+    numbers from this run.
+    """
+    path = docs / f"REPORT-{dim.upper()}.md"
+    if not path.exists():
+        return None
+    lines = path.read_text(encoding="utf-8").split("\n")
+    start = next((i for i, l in enumerate(lines) if l.startswith(f"## {dim.upper()} ")), None)
+    if start is None:
+        return None
+    meta = next((l for l in lines[:start] if l.startswith("Godot ")), None)
+    note = f"_Not re-run: carried over from `{path.name}`" + (
+        f" ({meta.rstrip('.')})._" if meta else "._"
+    )
+    return [lines[start], "", note] + lines[start + 1 :]
 
 
 def main():
@@ -197,14 +255,23 @@ def main():
         "",
     ]
 
+    carried = {
+        d: s for d in BASELINE if d not in tree and (s := carried_section(docs, d)) is not None
+    }
+
     per_dim = {}
-    for dim in sorted(tree):
+    for dim in sorted(set(tree) | set(carried)):
+        if dim not in tree:
+            out += carried[dim]
+            continue
         section_start = len(out)
         cases_present = tree[dim]
         ordered = [c for c in CASE_ORDER if c in cases_present] + [
             c for c in sorted(cases_present) if c not in CASE_ORDER
         ]
         data = {c: {e: summarize(r) for e, r in cases_present[c].items()} for c in ordered}
+        for c in ordered:
+            mark_exploded(data[c])
         engines = sorted(
             {e for c in ordered for e in data[c]}, key=lambda e: (e != BASELINE.get(dim), e)
         )
@@ -243,10 +310,13 @@ def main():
             ]
             for missing in [e for e in engines if e not in s]:
                 out.append(f"| {missing} | failed | — | — |")
-            base = s.get(BASELINE.get(dim), {}).get("p50")
-            fastest = min(v["p50"] for v in s.values())
-            for engine in sorted(s, key=lambda e: s[e]["p50"]):
-                v = s[engine]
+            valid = {e: v for e, v in s.items() if not v["diverged"]}
+            for engine in sorted(e for e in s if e not in valid):
+                out.append(f"| {engine} | diverged | — | — |")
+            base = valid.get(BASELINE.get(dim), {}).get("p50")
+            fastest = min((v["p50"] for v in valid.values()), default=None)
+            for engine in sorted(valid, key=lambda e: valid[e]["p50"]):
+                v = valid[engine]
                 rel = (
                     "—"
                     if engine == BASELINE.get(dim)
@@ -277,6 +347,11 @@ def main():
 
             owners = {}
             for engine, v in s.items():
+                if v["diverged"]:
+                    warnings.append(
+                        f"{dim}/{case}: {engine} {v['diverged_reason']} — its step time is "
+                        f"not ranked."
+                    )
                 if len(v["fps"]) > 1:
                     warnings.append(
                         f"{dim}/{case}: {engine} produced {len(v['fps'])} fingerprints across "
@@ -293,16 +368,24 @@ def main():
 
         per_dim[dim] = out[section_start:]
 
-    if warnings:
-        out = out[:2] + ["## ⚠ Validity warnings", ""] + [f"- {w}" for w in warnings] + [""] + out[2:]
-
+    # Taken before the warnings go in: they are inserted after the title, and slicing afterwards
+    # gives the per-dimension files a warnings heading in place of the run line.
     header = out[:4]
-    (docs / "REPORT.md").write_text("\n".join(out))
+
+    def with_warnings(lines, ws):
+        if not ws:
+            return lines
+        return lines[:2] + ["## ⚠ Validity warnings", ""] + [f"- {w}" for w in ws] + [""] + lines[2:]
+
+    (docs / "REPORT.md").write_text("\n".join(with_warnings(out, warnings)), encoding="utf-8")
     print(f"wrote {docs / 'REPORT.md'}")
-    # One file per dimension too: the tracks share no engine, so a reader only ever wants one.
+    # One file per dimension too: the tracks share no engine, so a reader only ever wants one —
+    # and that reader still needs to know which of its columns are invalid. Every warning is
+    # prefixed "<dim>/<case>:", which is what routes it to its track.
     for dim, body in per_dim.items():
         path = docs / f"REPORT-{dim.upper()}.md"
-        path.write_text("\n".join(header + body))
+        own = [w for w in warnings if w.startswith(f"{dim}/")]
+        path.write_text("\n".join(with_warnings(header + body, own)), encoding="utf-8")
         print(f"wrote {path}")
     for w in warnings:
         print(f"warning: {w}", file=sys.stderr)

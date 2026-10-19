@@ -5,7 +5,7 @@ same way.
 
 | track | engines |
 |---|---|
-| **2D** | [Rapier](https://github.com/appsinacup/godot-rapier-physics) · [Box2D v3](https://github.com/Pizzaandy/godot-box2d-v3) |
+| **2D** | [Rapier](https://github.com/appsinacup/godot-rapier-physics) · [Box2D](https://github.com/erincatto/godot-box2d) |
 | **3D** | [Rapier](https://github.com/appsinacup/godot-rapier-physics) · Jolt (in Godot 4.4+) · [Box3D](https://github.com/bearlikelion/godot-box3d) |
 
 **Results: [2D](docs/REPORT-2D.md) · [3D](docs/REPORT-3D.md) · [both](docs/REPORT.md)**
@@ -82,7 +82,7 @@ Use a release build for any number you quote; debug builds are several times slo
 | addon | where |
 |---|---|
 | Rapier | [releases](https://github.com/appsinacup/godot-rapier-physics/releases) |
-| Box2D v3 | [releases](https://github.com/Pizzaandy/godot-box2d-v3/releases) |
+| Box2D | build from [source](https://github.com/erincatto/godot-box2d) |
 | Box3D | [releases](https://github.com/bearlikelion/godot-box3d/releases) |
 | Jolt | ships with Godot 4.4+ |
 

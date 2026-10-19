@@ -2,7 +2,7 @@
 #
 # Cross-engine physics benchmark driver.
 #
-#   2D track: Rapier2D vs Box2D (godot-box2d-v3) vs GodotPhysics2D
+#   2D track: Rapier2D vs Box2D (godot-box2d) vs GodotPhysics2D
 #   3D track: Rapier3D vs Jolt Physics vs GodotPhysics3D
 #
 # Every (engine, case, repeat) is a separate Godot process. That is the point: it keeps a
@@ -55,6 +55,13 @@ if [[ ! -x "$GODOT" ]]; then
 fi
 
 mkdir -p "$OUT"
+
+# Git Bash on Windows has no `time -l`, `sysctl` or `uptime`. Runs there skip the cpu and
+# load figures rather than fail.
+WINDOWS=0
+case "$(uname -s)" in
+    MINGW*|MSYS*|CYGWIN*) WINDOWS=1 ;;
+esac
 
 # Engine lists are the names each server registers with PhysicsServer{2,3}DManager, not
 # display names. `DEFAULT` is deliberately not used: it is an alias whose target depends on
@@ -189,8 +196,10 @@ run_track() {
                 # cpu divided by wall time is the average number of cores the engine kept busy:
                 # step time alone hides an engine that wins by burning more of the machine.
                 local cpu_file="$OUT/$dim/$slug/${case_name}_r${repeat}.cpu"
+                local -a timer=(/usr/bin/time -l)
+                [[ $WINDOWS -eq 1 ]] && timer=()
                 run_with_timeout "$TIMEOUT_S" \
-                    /usr/bin/time -l \
+                    "${timer[@]}" \
                     "$GODOT" --headless --fixed-fps 60 --path "$project" bench.tscn -- \
                     --case="$case_name" --steps="$STEPS" --warmup="$WARMUP" \
                     --out="$out_file" --engine-label="$engine" \
@@ -242,8 +251,12 @@ echo
 # every number, and a report that does not say so invites comparison against results taken
 # on a quiet one.
 mkdir -p "$OUT"
-printf '{"load_before": "%s", "cpus": %s}\n' \
-    "$(uptime | sed 's/.*averages*: *//')" "$(sysctl -n hw.ncpu)" > "$OUT/environment.json"
+if [[ $WINDOWS -eq 1 ]]; then
+    printf '{"load_before": "n/a", "cpus": %s}\n' "$(nproc)" > "$OUT/environment.json"
+else
+    printf '{"load_before": "%s", "cpus": %s}\n' \
+        "$(uptime | sed 's/.*averages*: *//')" "$(sysctl -n hw.ncpu)" > "$OUT/environment.json"
+fi
 
 status=0
 if [[ "$DIM" == "2d" || "$DIM" == "both" ]]; then

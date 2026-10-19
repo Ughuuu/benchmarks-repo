@@ -1,0 +1,16 @@
+; Windows and macOS (universal) builds of github.com/erincatto/godot-box2d, written for the
+; benchmark rather than copied from upstream. Both `debug` and `release` point at the template_release binary so the optimized
+; library loads no matter which context Godot decides it is running in. Pointing `debug` at a
+; debug build would silently benchmark an unoptimized Box2D.
+
+[configuration]
+
+entry_symbol = "godot_box2d_init"
+compatibility_minimum = "4.7"
+
+[libraries]
+
+windows.debug.x86_64 = "bin/godot-box2d.windows.template_release.x86_64.dll"
+windows.release.x86_64 = "bin/godot-box2d.windows.template_release.x86_64.dll"
+macos.debug = "bin/libgodot-box2d.macos.template_release.dylib"
+macos.release = "bin/libgodot-box2d.macos.template_release.dylib"

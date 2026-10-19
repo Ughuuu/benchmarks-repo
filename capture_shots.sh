@@ -24,6 +24,8 @@ shoot_engine() {
     for case_name in $VISUAL_CASES; do
         [[ -f "$project/cases/$case_name.gd" ]] || continue
         local f="docs/shots/${dim}_${case_name}_${slug}.png"
+        # A stale image from an earlier run would otherwise pass for a fresh one.
+        rm -f "$f"
         # Godot backgrounded directly, not in a subshell: with ( ... ) & the recorded pid is
         # the subshell's, and killing that on timeout orphans Godot to run forever.
         "$GODOT" --path "$project" --resolution "$RES" -- \
@@ -42,6 +44,7 @@ mkdir -p docs/shots
 echo "=== 2D ==="
 shoot_engine bench2d 2d "Box2D"
 shoot_engine bench2d 2d "Rapier2D"
+shoot_engine bench2d 2d "GodotPhysics2D"
 echo "=== 3D ==="
 shoot_engine bench3d 3d "Jolt Physics"
 shoot_engine bench3d 3d "Rapier3D"

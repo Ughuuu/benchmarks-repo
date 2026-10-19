@@ -97,6 +97,9 @@ func _open_viewer(
 	viewer.shot_path = shot
 	viewer.shot_tick = shot_tick
 	viewer.shot_exact = exact
+	# Physics stops at the tick limit, so a later shot tick would never arrive.
+	if shot != "":
+		viewer.max_ticks = maxi(viewer.max_ticks, shot_tick)
 	# Deferred because this can be reached from _ready, and the tree refuses an add_child
 	# while it is still setting up the current scene's children.
 	_swap_scene.call_deferred(viewer)

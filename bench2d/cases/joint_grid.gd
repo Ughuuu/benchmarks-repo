@@ -29,16 +29,18 @@ func build(root: Node) -> void:
 		for col in COLS:
 			var i := row * COLS + col
 			if col + 1 < COLS:
-				_pin(root, bodies[i], bodies[i + 1])
+				_pin(root, bodies[i], bodies[i + 1], _start[i] + Vector2(0.5 * PITCH, 0))
 			if row + 1 < ROWS:
-				_pin(root, bodies[i], bodies[i + COLS])
+				_pin(root, bodies[i], bodies[i + COLS], _start[i] + Vector2(0, 0.5 * PITCH))
 			if row == 0:
-				_pin(root, bodies[i], _anchor)
+				# Directly above the body. The anchor origin is mid bar, so a midpoint would hang
+				# the outer columns from long levers and the lattice tears itself apart.
+				_pin(root, bodies[i], _anchor, _start[i] + Vector2(0, -0.5 * PITCH))
 
 
-func _pin(root: Node, a: Node2D, b: Node2D) -> void:
+func _pin(root: Node, a: Node2D, b: Node2D, at: Vector2) -> void:
 	var j := PinJoint2D.new()
-	j.position = (a.position + b.position) * 0.5
+	j.position = at
 	root.add_child(j)
 	j.node_a = j.get_path_to(a)
 	j.node_b = j.get_path_to(b)

@@ -1,6 +1,10 @@
 # Godot physics engine benchmark
 
-Godot 4.7-stable (official) · 300 timed steps · 60 Hz · single run · lower is better.
+## ⚠ Validity warnings
+
+- 2d/joint_grid: GodotPhysics2D has `displacement_max` at 935,529x any other engine's, so the simulation exploded — its step time is not ranked.
+
+Godot 4.7.1-stable (official) · 300 timed steps · 60 Hz · single run · lower is better.
 
 ## 2D (lower is better)
 
@@ -10,78 +14,79 @@ Godot 4.7-stable (official) · 300 timed steps · 60 Hz · single run · lower i
 
 ### `pyramid` (2d)
 
-| Rapier2D | Box2D |
-|---|---|
-| ![Rapier2D](shots/2d_pyramid_Rapier2D.png) | ![Box2D](shots/2d_pyramid_Box2D.png) |
+| Rapier2D | Box2D | GodotPhysics2D |
+|---|---|---|
+| ![Rapier2D](shots/2d_pyramid_Rapier2D.png) | ![Box2D](shots/2d_pyramid_Box2D.png) | ![GodotPhysics2D](shots/2d_pyramid_GodotPhysics2D.png) |
 
 | engine | step p50 | step p99 | vs Rapier2D |
 |---|---:|---:|---:|
-| **Rapier2D** | **19.47 ms** | 38.84 ms | — |
-| Box2D | 24.06 ms | 66.90 ms | 1.24x |
-| GodotPhysics2D | 151.83 ms | 242.54 ms | 7.80x |
+| **Box2D** | **5.12 ms** | 5.80 ms | 0.34x |
+| Rapier2D | 14.94 ms | 20.29 ms | — |
+| GodotPhysics2D | 94.97 ms | 152.88 ms | 6.36x |
 
 ### `mixed_pile` (2d)
 
-| Rapier2D | Box2D |
-|---|---|
-| ![Rapier2D](shots/2d_mixed_pile_Rapier2D.png) | ![Box2D](shots/2d_mixed_pile_Box2D.png) |
+| Rapier2D | Box2D | GodotPhysics2D |
+|---|---|---|
+| ![Rapier2D](shots/2d_mixed_pile_Rapier2D.png) | ![Box2D](shots/2d_mixed_pile_Box2D.png) | ![GodotPhysics2D](shots/2d_mixed_pile_GodotPhysics2D.png) |
 
 | engine | step p50 | step p99 | vs Rapier2D |
 |---|---:|---:|---:|
-| **Box2D** | **5.91 ms** | 9.69 ms | 0.67x |
-| Rapier2D | 8.77 ms | 12.54 ms | — |
-| GodotPhysics2D | 64.78 ms | 149.32 ms | 7.38x |
+| **Box2D** | **2.56 ms** | 2.91 ms | 0.42x |
+| Rapier2D | 6.05 ms | 7.29 ms | — |
+| GodotPhysics2D | 40.30 ms | 45.55 ms | 6.66x |
 
 ### `joint_grid` (2d)
 
-| Rapier2D | Box2D |
-|---|---|
-| ![Rapier2D](shots/2d_joint_grid_Rapier2D.png) | ![Box2D](shots/2d_joint_grid_Box2D.png) |
+| Rapier2D | Box2D | GodotPhysics2D |
+|---|---|---|
+| ![Rapier2D](shots/2d_joint_grid_Rapier2D.png) | ![Box2D](shots/2d_joint_grid_Box2D.png) | ![GodotPhysics2D](shots/2d_joint_grid_GodotPhysics2D.png) |
 
 | engine | step p50 | step p99 | vs Rapier2D |
 |---|---:|---:|---:|
-| GodotPhysics2D | failed | — | — |
-| **Box2D** | **3.83 ms** | 4.93 ms | 0.48x |
-| Rapier2D | 7.99 ms | 11.65 ms | — |
+| GodotPhysics2D | diverged | — | — |
+| **Box2D** | **2.08 ms** | 2.28 ms | 0.42x |
+| Rapier2D | 4.98 ms | 5.36 ms | — |
 
 | engine | `displacement_max` |
 |---|---|
-| Box2D | inf |
-| Rapier2D | 220.7 |
+| Box2D | 16.51 |
+| GodotPhysics2D | 15444226 |
+| Rapier2D | 5.319 |
 
 ### `smash` (2d)
 
-| Rapier2D | Box2D |
-|---|---|
-| ![Rapier2D](shots/2d_smash_Rapier2D.png) | ![Box2D](shots/2d_smash_Box2D.png) |
+| Rapier2D | Box2D | GodotPhysics2D |
+|---|---|---|
+| ![Rapier2D](shots/2d_smash_Rapier2D.png) | ![Box2D](shots/2d_smash_Box2D.png) | ![GodotPhysics2D](shots/2d_smash_GodotPhysics2D.png) |
 
 | engine | step p50 | step p99 | vs Rapier2D |
 |---|---:|---:|---:|
-| **Box2D** | **11.52 ms** | 27.05 ms | 0.93x |
-| Rapier2D | 12.42 ms | 21.36 ms | — |
-| GodotPhysics2D | 50.63 ms | 64.15 ms | 4.08x |
+| **Box2D** | **2.87 ms** | 3.33 ms | 0.39x |
+| Rapier2D | 7.28 ms | 10.86 ms | — |
+| GodotPhysics2D | 34.57 ms | 43.50 ms | 4.75x |
 
 | engine | `spread` |
 |---|---|
-| Box2D | 1.427e+04 |
+| Box2D | 3369 |
 | GodotPhysics2D | 1.484e+04 |
 | Rapier2D | 3449 |
 
 ### `query_storm` (2d)
 
-| Rapier2D | Box2D |
-|---|---|
-| ![Rapier2D](shots/2d_query_storm_Rapier2D.png) | ![Box2D](shots/2d_query_storm_Box2D.png) |
+| Rapier2D | Box2D | GodotPhysics2D |
+|---|---|---|
+| ![Rapier2D](shots/2d_query_storm_Rapier2D.png) | ![Box2D](shots/2d_query_storm_Box2D.png) | ![GodotPhysics2D](shots/2d_query_storm_GodotPhysics2D.png) |
 
 | engine | step p50 | step p99 | vs Rapier2D |
 |---|---:|---:|---:|
-| **Box2D** | **4.28 ms** | 16.66 ms | 0.60x |
-| Rapier2D | 7.11 ms | 19.76 ms | — |
-| GodotPhysics2D | 63.39 ms | 89.14 ms | 8.91x |
+| **Box2D** | **2.51 ms** | 2.64 ms | 0.58x |
+| Rapier2D | 4.31 ms | 4.47 ms | — |
+| GodotPhysics2D | 45.40 ms | 46.02 ms | 10.54x |
 
 | engine | `hits` | `queries` |
 |---|---|---|
-| Box2D | 280158 | 323100 |
+| Box2D | 280563 | 323100 |
 | GodotPhysics2D | 280132 | 323100 |
 | Rapier2D | 258360 | 323100 |
 
@@ -89,6 +94,6 @@ Godot 4.7-stable (official) · 300 timed steps · 60 Hz · single run · lower i
 
 | engine | step p50 | step p99 | vs Rapier2D |
 |---|---:|---:|---:|
-| **Rapier2D** | **17.81 ms** | 28.86 ms | — |
-| Box2D | 21.10 ms | 41.18 ms | 1.19x |
-| GodotPhysics2D | 117.37 ms | 180.69 ms | 6.59x |
+| **Box2D** | **4.18 ms** | 4.77 ms | 0.34x |
+| Rapier2D | 12.27 ms | 14.47 ms | — |
+| GodotPhysics2D | 66.05 ms | 103.94 ms | 5.38x |
